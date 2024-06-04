@@ -18,6 +18,7 @@ in pkgs.mkShell rec {
             extraLibs = with pkgs.python3.pkgs; [
                 python-dotenv
                 requests
+                flask
             ];
         })
     ]);
