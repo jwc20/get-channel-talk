@@ -1,3 +1,16 @@
+
+
+''' 
+TODO: 
+get the list of user-chats by calling /api/userchats
+loop over 'userChats', checking the 'managerIds' of each chat with the id we are checking
+    if the id is in the 'managerIds', get the chat messages from the 'userChats' by calling the '/api/userchats/<chatId>/messages' endpoint
+    else, skip
+
+'''
+
+
+
 from flask import Flask, redirect, render_template, request, flash, jsonify, send_file
 from dotenv import load_dotenv
 import os
@@ -42,6 +55,56 @@ def get(endpoint: str) -> dict:
 
 
 
+
+
+@app.route("/api/userchats", methods=["GET"])
+def get_chats() -> dict:
+    headers = {
+        "Content-Type": "application/json",
+        "X-Access-Key": ACCESS_KEY,
+        "X-Access-Secret": ACCESS_SECRET,
+    }
+    response = requests.get("http://api.channel.io/open/v5/user-chats/", headers=headers, json=True)
+    return response.json()
+
+
+@app.route("/api/userchats/<chatId>", methods=["GET"])
+def get_chat_messages(chatId: str) -> dict:
+    headers = {
+        "Content-Type": "application/json",
+        "X-Access-Key": ACCESS_KEY,
+        "X-Access-Secret": ACCESS_SECRET,
+    }
+    response = requests.get("http://api.channel.io/open/v5/user-chats/" + chatId + "/messages?sortOrder=desc&limit=25", headers=headers, json=True)
+    return response.json()
+
+@app.route("/api/sessions/<chatId>", methods=["GET"])
+def get_chat_sessions(chatId: str) -> dict:
+    headers = {
+        "Content-Type": "application/json",
+        "X-Access-Key": ACCESS_KEY,
+        "X-Access-Secret": ACCESS_SECRET,
+    }
+    response = requests.get("http://api.channel.io/open/v5/user-chats/" + chatId + "/sessions", headers=headers, json=True)
+    return response.json()
+
+
+# @app.route("/api/<endpoint>")
+# def check_if_manager_exists_in_userchats() -> dict:
+#   return
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
     app.debug = True
     app.run()
+
+
