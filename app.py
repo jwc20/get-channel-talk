@@ -1,9 +1,9 @@
 
-''' 
-TODO: 
+'''
+TODO:
 get the list of user-chats by calling /api/userchats
 loop over 'userChats', checking the 'managerIds' of each chat with the id we are checking
-    if the id is in the 'managerIds', get the chat messages from the 'userChats' by calling the '/api/userchats/<chatId>/messages' endpoint
+    if the id is in the 'managerIds', get the chat messages from the 'userChats' by calling the '/api/messages/<chatId>' endpoint
     else, skip
 
 '''
@@ -20,12 +20,6 @@ app = Flask(__name__)
 
 load_dotenv()
 
-# app.config["ACCESS_KEY"] = os.getenv("ACCESS_KEY")
-# app.config["ACCESS_SECRET"] = os.getenv("ACCESS_SECRET")
-
-# ACCESS_KEY = app.config["ACCESS_KEY"]
-# ACCESS_SECRET = app.config["ACCESS_SECRET"]
-
 ACCESS_KEY = os.getenv("ACCESS_KEY")
 ACCESS_SECRET = os.getenv("ACCESS_SECRET")
 
@@ -38,7 +32,7 @@ def index():
 @app.route("/api/<endpoint>", methods=["GET"])
 def get(endpoint: str) -> dict:
     '''
-    examples: 
+    examples:
         endpoint = 'users'
         endpoint = 'managers'
         endpoint = 'managers/<manager_id>'
@@ -53,10 +47,6 @@ def get(endpoint: str) -> dict:
     return response.json()
 
 
-
-
-
-
 @app.route("/api/userchats", methods=["GET"])
 def get_chats() -> dict:
     headers = {
@@ -68,7 +58,7 @@ def get_chats() -> dict:
     return response.json()
 
 
-@app.route("/api/userchats/<chatId>", methods=["GET"])
+@app.route("/api/messages/<chatId>", methods=["GET"])
 def get_chat_messages(chatId: str) -> dict:
     headers = {
         "Content-Type": "application/json",
@@ -98,7 +88,7 @@ def check_if_manager_exists_in_userchats(managerId):
     _ids = list()
     _userChats = get_chats()["userChats"]
     for userChat in _userChats:
-        print(userChat)
+        # print(userChat)
 
         if "managerIds" not in userChat:
             continue
@@ -113,8 +103,8 @@ def check_if_manager_exists_in_userchats(managerId):
             if "blocks" in message and isinstance(message["blocks"], list):
                 for block in message["blocks"]:
                     if "type" in block and block["type"] == "text" and "value" in block:
-                        result.append(block["value"])
-                        # result.append(message)
+                        # result.append(block["value"])
+                        result.append(message)
 
     return result
 
@@ -122,4 +112,3 @@ def check_if_manager_exists_in_userchats(managerId):
 if __name__ == "__main__":
     app.debug = True
     app.run(host='localhost', port=5010)
-
