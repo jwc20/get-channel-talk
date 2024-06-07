@@ -98,6 +98,11 @@ def check_if_manager_exists_in_userchats(managerId):
     _ids = list()
     _userChats = get_chats()["userChats"]
     for userChat in _userChats:
+        print(userChat)
+
+        if "managerIds" not in userChat:
+            continue
+
         if managerId in userChat["managerIds"]:
             # print(userChat["name"], userChat["id"])
             _ids.append(userChat["id"])
@@ -109,9 +114,7 @@ def check_if_manager_exists_in_userchats(managerId):
                 for block in message["blocks"]:
                     if "type" in block and block["type"] == "text" and "value" in block:
                         result.append(block["value"])
-
-
-
+                        # result.append(message)
 
     return result
 
