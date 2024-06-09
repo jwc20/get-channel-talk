@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 import os
 import requests
 from collections import defaultdict
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -22,6 +23,19 @@ load_dotenv()
 
 ACCESS_KEY = os.getenv("ACCESS_KEY")
 ACCESS_SECRET = os.getenv("ACCESS_SECRET")
+
+
+# -Helper Functions-----------------------------------
+
+def convert_timestamp_to_date(timestamp: int) -> str:
+    '''
+    input: timestamp in milliseconds
+    output: date in the format 'Year-Month-Day Hour:Minute:Second'
+    '''
+    date_time = datetime.utcfromtimestamp(timestamp / 1000)
+    return date_time.strftime('%Y-%m-%d %H:%M:%S')
+
+# ----------------------------------------------------
 
 
 @app.route("/")
@@ -54,8 +68,8 @@ def get_chats() -> dict:
         "X-Access-Key": ACCESS_KEY,
         "X-Access-Secret": ACCESS_SECRET,
     }
-    response = requests.get("http://api.channel.io/open/v5/user-chats?sortOrder=desc&limit=30", headers=headers, json=True)
-    return response.json()
+    response = requests.get("http://api.channel.io/open/v5/user-chats?sortOrder=desc&limit=100", headers=headers, json=True)
+    return response.json()["userChats"]
 
 
 @app.route("/api/messages/<chatId>", methods=["GET"])
@@ -86,15 +100,16 @@ def get_chat_sessions(chatId: str) -> dict:
 def check_if_manager_exists_in_userchats(managerId):
     result = list()
     _ids = list()
-    _userChats = get_chats()["userChats"]
+    _userChats = get_chats()
     for userChat in _userChats:
         # print(userChat)
 
-        if "managerIds" not in userChat:
-            continue
+        # if "managerIds" not in userChat:
+        #     continue
 
         if managerId in userChat["managerIds"]:
-            # print(userChat["name"], userChat["id"])
+            print(userChat["name"], userChat["id"])
+            print(managerId, userChat["managerIds"])
             _ids.append(userChat["id"])
 
     for id in _ids:
@@ -105,6 +120,7 @@ def check_if_manager_exists_in_userchats(managerId):
                     if "type" in block and block["type"] == "text" and "value" in block:
                         # result.append(block["value"])
                         result.append(message)
+                        # print(convert_timestamp_to_date(message["createdAt"]), block["value"])
 
     return result
 
