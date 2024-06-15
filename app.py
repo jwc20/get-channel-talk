@@ -54,10 +54,6 @@ def get(endpoint: str) -> dict:
     )
     return response.json()
 
-
-
-
-
 @app.route("/api/messages/<chatId>", methods=["GET"])
 def get_chat_messages(chatId: str) -> dict:
     headers = {
@@ -75,7 +71,6 @@ def get_chat_messages(chatId: str) -> dict:
     response.encoding = "utf-8"
     return response.json()
 
-
 @app.route("/api/sessions/<chatId>", methods=["GET"])
 def get_chat_sessions(chatId: str) -> dict:
     headers = {
@@ -91,7 +86,6 @@ def get_chat_sessions(chatId: str) -> dict:
     response.encoding = "utf-8"
     return response.json()
 
-
 @app.route("/api/userchats", methods=["GET"])
 def get_chats(
     state: str = "opened", sort_order: str = "desc", limit: str = "25"
@@ -104,7 +98,6 @@ def get_chats(
     }
     
     state = state.lower() if state != "all" else state
-    limit = min(int(limit), 25)
     sort_order = sort_order.lower() if sort_order in ["asc", "desc"] else "desc"
 
     result = defaultdict(list)
@@ -124,18 +117,19 @@ def get_chats(
         if response.status_code == 200:
             result[state].extend(response.json()["userChats"])
 
-    # for k, v in result.items():
-    #     pprint(f"{k}:")
-    #     for i in v[:3]:
-    #         pprint(i)
-
-    print(result)
+    for k, v in result.items():
+        pprint(f"{k}:")
+        for i in v[:3]:
+            pprint(i)
 
     return result
     # return response.json()["userChats"]
 
+@app.route("/api/managers/<manager_id>/chats", methods=["GET"])
+@app.route("/api/managers/<manager_id>/chats/<state>", methods=["GET"])
+@app.route("/api/managers/<manager_id>/chats/<state>/<limit>", methods=["GET"])
 @app.route("/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"])
-def check_if_manager_exists_in_userchats(manager_id: str, state: str, limit: str, sort_order: str) -> List[dict]:
+def check_if_manager_exists_in_userchats(manager_id: str, state: str="all", limit: str="25", sort_order: str="desc") -> List[dict]:
     result = []
     _ids = []
     states = "all opened closed snoozed".split()
@@ -144,7 +138,7 @@ def check_if_manager_exists_in_userchats(manager_id: str, state: str, limit: str
 
     state = state if state in states else ""
     sort_order = sort_order if sort_order in sorts else ""
-    limit = min(int(limit), 25)
+    limit = min(max(int(limit), 500), 25)
 
     for s in ["opened", "closed", "snoozed"]:
         _userChats = get_chats(state=s, limit=limit, sort_order=sort_order)
