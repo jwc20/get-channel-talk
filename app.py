@@ -4,7 +4,7 @@ import os
 import requests
 from typing import DefaultDict, List, Dict
 from collections import defaultdict, deque
-from datetime import datetime
+from datetime import datetime, timezone
 import base64
 import urllib.parse
 
@@ -24,7 +24,7 @@ def convert_timestamp_to_date(timestamp: int) -> str:
     input: timestamp in milliseconds
     output: date in the format 'Year-Month-Day Hour:Minute:Second'
     """
-    date_time = datetime.utcfromtimestamp(timestamp / 1000)
+    date_time =  datetime.fromtimestamp(timestamp / 1000, timezone.utc)
     return date_time.strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -75,6 +75,7 @@ def get_chat_messages(chatId: str) -> dict:
     response.encoding = "utf-8"
     return response.json()
 
+
 # @app.route("/api/sessions/<chatId>", methods=["GET"])
 # def get_chat_sessions(chatId: str) -> dict:
 #     headers = {
@@ -90,29 +91,33 @@ def get_chat_messages(chatId: str) -> dict:
 #     response.encoding = "utf-8"
 #     return response.json()
 
+
 # @app.route("/api/userchats", methods=["GET"])
 def get_chats(
-    state: str = "opened", sort_order: str = "desc", limit: str = "25", arr: DefaultDict = defaultdict(list)
+    state: str = "opened",
+    sort_order: str = "desc",
+    limit: str = "25",
+    arr: DefaultDict = defaultdict(list),
 ) -> dict:
-
-    
 
     headers = {
         "Content-Type": "application/json",
         "X-Access-Key": ACCESS_KEY,
         "X-Access-Secret": ACCESS_SECRET,
     }
-    
+
     state = state.lower() if state != "all" else state
     sort_order = sort_order.lower() if sort_order in ["asc", "desc"] else "desc"
     _limit = int(limit)
 
-    url = f"http://api.channel.io/open/v5/user-chats?state={state}" \
-          f"&sortOrder={sort_order}&limit={limit}"
-    
+    url = (
+        f"http://api.channel.io/open/v5/user-chats?state={state}"
+        f"&sortOrder={sort_order}&limit={limit}"
+    )
+
     while _limit > 0:
         response = requests.get(url, headers=headers, json=True)
-            
+
         # TODO add list of users, add list of managers in the userchats
         participants = []
 
@@ -122,16 +127,23 @@ def get_chats(
             managers = response.json()["managers"]
 
         for userChat in userChats:
-            participants.append({"id": userChat["userId"], "name": userChat["name"], "type": "user"})
+            participants.append(
+                {"id": userChat["userId"], "name": userChat["name"], "type": "user"}
+            )
 
             if "managerIds" in userChat:
                 for managerId in userChat["managerIds"]:
                     manager = next((m for m in managers if m["id"] == managerId), None)
                     if manager:
-                        participants.append({"id": managerId, "name": manager["name"], "type": "manager"})
+                        participants.append(
+                            {
+                                "id": managerId,
+                                "name": manager["name"],
+                                "type": "manager",
+                            }
+                        )
                         # print({"id": managerId, "name": manager["name"], "type": "manager"})
-        
-        
+
         for participant in participants:
             if not any(d["id"] == participant["id"] for d in arr["participants"]):
                 arr["participants"].append(participant)
@@ -139,16 +151,15 @@ def get_chats(
         arr[state].extend(userChats)
 
         # print(arr["participants"])
-        
-        
+
         # arr[state].extend(response.json()["userChats"])
         _limit -= 25
         if response.status_code == 200:
-            
+
             if "next" in response.json():
-                next_string = urllib.parse.quote(response.json()["next"], safe='')
+                next_string = urllib.parse.quote(response.json()["next"], safe="")
                 url += "&since=" + next_string
-                
+
                 # print(arr[state], _limit)
                 # print(response.json()["next"])
                 # print(len(response.json()["userChats"]))
@@ -156,7 +167,7 @@ def get_chats(
                 break
         else:
             break
-    
+
     # response = requests.get(url, headers=headers, json=True)
     # if response.status_code == 200:
     #     if "next" in response.json():
@@ -168,17 +179,22 @@ def get_chats(
     # print(arr)
     return arr
 
+
 @app.route("/api/managers/<manager_id>/chats", methods=["GET"])
 @app.route("/api/managers/<manager_id>/chats/<state>", methods=["GET"])
 @app.route("/api/managers/<manager_id>/chats/<state>/<limit>", methods=["GET"])
-@app.route("/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"])
-def check_if_manager_exists_in_userchats(manager_id: str, state: str="all", limit: str="25", sort_order: str="desc") -> List[dict]:
+@app.route(
+    "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"]
+)
+def check_if_manager_exists_in_userchats(
+    manager_id: str, state: str = "all", limit: str = "25", sort_order: str = "desc"
+) -> List[dict]:
     result = []
     _ids = []
     _arr = defaultdict(list)
     states = "all opened closed snoozed".split()
     sorts = "asc desc".split()
-    
+
     # print(limit)
 
     state = state if state in states else ""
@@ -187,16 +203,20 @@ def check_if_manager_exists_in_userchats(manager_id: str, state: str="all", limi
 
     if state == "all":
         for s in ["opened", "closed", "snoozed"]:
-            _userChats = get_chats(state=s, limit=limit, sort_order=sort_order, arr=_arr)
+            _userChats = get_chats(
+                state=s, limit=limit, sort_order=sort_order, arr=_arr
+            )
             for userChat in _userChats[s]:
                 if "managerIds" not in userChat:
                     continue
 
                 if manager_id in userChat["managerIds"]:
                     _ids.append(userChat["id"])
-    
+
     else:
-        _userChats = get_chats(state=state, limit=limit, sort_order=sort_order, arr=_arr)
+        _userChats = get_chats(
+            state=state, limit=limit, sort_order=sort_order, arr=_arr
+        )
         for userChat in _userChats[state]:
             if "managerIds" not in userChat:
                 continue
@@ -207,34 +227,23 @@ def check_if_manager_exists_in_userchats(manager_id: str, state: str="all", limi
     # print(_ids)
     for id in _ids:
         # print(id)
+        chat_messages = []
+
         _messages = get_chat_messages(id)["messages"]
 
-        
-        
         for message in _messages:
-
             if message["personType"] == "bot":
                 continue
-
-            # if message["personId"] in [_userChats["participants"][p]["id"] for p in _userChats["participants"]]:
-            #     print(message["personType"], message["plainText"])
 
             for participant in _userChats["participants"]:
                 if message["personId"] == participant["id"]:
                     if "plainText" in message:
-                        result.append(f"{participant['name']} |  {message['plainText']}")
-                
-                
+                        chat_messages.append(
+                            # TODO: change this into a dictionary
+                            f"{convert_timestamp_to_date(message['createdAt'])} |  {participant['name']} |  {message['plainText']}"
+                        )
 
-            # if "plainText" in message:
-            #     result.append(f"{message['personType']} |  {message['plainText']}")
-            
-            # if "blocks" in message and isinstance(message["blocks"], list):
-            #     for block in message["blocks"]:
-            #         if "type" in block and block["type"] == "text" and "value" in block:
-            #             result.append(block["value"])
-                        # result.append(message)
-                        # print(convert_timestamp_to_date(message["createdAt"]), block["value"])
+        result.append({"chat_id": id, "messages": chat_messages})
 
     return result
 
