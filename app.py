@@ -86,9 +86,9 @@ def get_chat_sessions(chatId: str) -> dict:
     response.encoding = "utf-8"
     return response.json()
 
-@app.route("/api/userchats", methods=["GET"])
+# @app.route("/api/userchats", methods=["GET"])
 def get_chats(
-    state: str = "opened", sort_order: str = "desc", limit: str = "25"
+    state: str = "opened", sort_order: str = "desc", limit: str = "25", arr: DefaultDict = defaultdict(list)
 ) -> dict:
 
     headers = {
@@ -100,29 +100,33 @@ def get_chats(
     state = state.lower() if state != "all" else state
     sort_order = sort_order.lower() if sort_order in ["asc", "desc"] else "desc"
 
-    result = defaultdict(list)
-    if state == "all":
-        for s in ["opened", "closed", "snoozed"]:
-            url = (
-                f"http://api.channel.io/open/v5/user-chats?state={s}"
-                f"&sortOrder={sort_order}&limit={limit}"
-            )
-            response = requests.get(url, headers=headers, json=True)
-            if response.status_code == 200:
-                result[s].extend(response.json()["userChats"])
-    else:
-        url = f"http://api.channel.io/open/v5/user-chats?state={state}" \
-              f"&sortOrder={sort_order}&limit={limit}"
-        response = requests.get(url, headers=headers, json=True)
-        if response.status_code == 200:
-            result[state].extend(response.json()["userChats"])
+    # result = defaultdict(list)
+    # if state == "all":
+    #     for s in ["opened", "closed", "snoozed"]:
+    #         url = (
+    #             f"http://api.channel.io/open/v5/user-chats?state={s}"
+    #             f"&sortOrder={sort_order}&limit={limit}"
+    #         )
+    #         response = requests.get(url, headers=headers, json=True)
+    #         if response.status_code == 200:
+    #             print(s, response.json()["next"])
+    #             result[s].extend(response.json()["userChats"])
+    # else:
+    #     url = f"http://api.channel.io/open/v5/user-chats?state={state}" \
+    #           f"&sortOrder={sort_order}&limit={limit}"
+    #     response = requests.get(url, headers=headers, json=True)
+    #     if response.status_code == 200:
+    #         result[state].extend(response.json()["userChats"])
 
-    for k, v in result.items():
-        pprint(f"{k}:")
-        for i in v[:3]:
-            pprint(i)
+    url = f"http://api.channel.io/open/v5/user-chats?state={state}" \
+          f"&sortOrder={sort_order}&limit={limit}"
+    response = requests.get(url, headers=headers, json=True)
+    if response.status_code == 200:
+        arr[state].extend(response.json()["userChats"])
 
-    return result
+    # {k: [*map(pprint, v[:3])] for k, v in arr.items()}
+    print(arr)
+    return arr
     # return response.json()["userChats"]
 
 @app.route("/api/managers/<manager_id>/chats", methods=["GET"])
@@ -132,6 +136,7 @@ def get_chats(
 def check_if_manager_exists_in_userchats(manager_id: str, state: str="all", limit: str="25", sort_order: str="desc") -> List[dict]:
     result = []
     _ids = []
+    _arr = defaultdict(list)
     states = "all opened closed snoozed".split()
     sorts = "asc desc".split()
     
@@ -140,9 +145,19 @@ def check_if_manager_exists_in_userchats(manager_id: str, state: str="all", limi
     sort_order = sort_order if sort_order in sorts else ""
     limit = min(max(int(limit), 500), 25)
 
-    for s in ["opened", "closed", "snoozed"]:
-        _userChats = get_chats(state=s, limit=limit, sort_order=sort_order)
-        for userChat in _userChats[s]:
+    if state == "all":
+        for s in ["opened", "closed", "snoozed"]:
+            _userChats = get_chats(state=s, limit=limit, sort_order=sort_order, arr=_arr)
+            for userChat in _userChats[s]:
+                if "managerIds" not in userChat:
+                    continue
+
+                if manager_id in userChat["managerIds"]:
+                    _ids.append(userChat["id"])
+    
+    else:
+        _userChats = get_chats(state=state, limit=limit, sort_order=sort_order, arr=_arr)
+        for userChat in _userChats[state]:
             if "managerIds" not in userChat:
                 continue
 
