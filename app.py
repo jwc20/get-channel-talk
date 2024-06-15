@@ -66,7 +66,7 @@ def get_chat_messages(chatId: str) -> dict:
     response = requests.get(
         "http://api.channel.io/open/v5/user-chats/"
         + chatId
-        + "/messages?sortOrder=desc&limit=25",
+        + "/messages?sortOrder=desc&limit=1000",
         headers=headers,
         json=True,
     )
@@ -121,64 +121,77 @@ def get_chat_sessions(chatId: str) -> dict:
 
 #     return result
 
-@app.route("/api/userchats", methods=["GET"])
+# @app.route("/api/userchats", methods=["GET"])
 def get_chats(
     state: str = "opened", sort_order: str = "desc", limit: str = "25"
-) -> Dict[str, List[dict]]:
+) -> dict:
+
     headers = {
         "Content-Type": "application/json",
         "X-Access-Key": ACCESS_KEY,
         "X-Access-Secret": ACCESS_SECRET,
     }
-
-    url = (
-        "http://api.channel.io/open/v5/user-chats?state="
-        + state
-        + "&sortOrder="
-        + sort_order
-        + "&limit="
-        + limit
-    )
     
-    
-    # import pdb; pdb.set_trace()
+    state = state.lower() if state != "all" else state
+    limit = min(int(limit), 25)
+    sort_order = sort_order.lower() if sort_order in ["asc", "desc"] else "desc"
 
-    response = requests.get(
-        url,
-        headers=headers,
-        json=True,
-    )
-    return response.json()["userChats"]
+    result = defaultdict(list)
+    if state == "all":
+        for s in ["opened", "closed", "snoozed"]:
+            url = (
+                f"http://api.channel.io/open/v5/user-chats?state={s}"
+                f"&sortOrder={sort_order}&limit={limit}"
+            )
+            response = requests.get(url, headers=headers, json=True)
+            if response.status_code == 200:
+                result[s].extend(response.json()["userChats"])
+    else:
+        url = f"http://api.channel.io/open/v5/user-chats?state={state}" \
+              f"&sortOrder={sort_order}&limit={limit}"
+        response = requests.get(url, headers=headers, json=True)
+        if response.status_code == 200:
+            result[state].extend(response.json()["userChats"])
+
+    # print(result)
+    return result
+    # return response.json()["userChats"]
 
 @app.route("/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"])
 def check_if_manager_exists_in_userchats(manager_id: str, state: str, limit: str, sort_order: str) -> List[dict]:
-    result = defaultdict(list)
-    # _ids = defaultdict(list)
+    result = []
+    _ids = []
     states = "all opened closed snoozed".split()
+    sorts = "asc desc".split()
+    
 
-    _userChats = get_chats(state=state, limit=limit, sort_order=sort_order)
-    print(_userChats)
+    state = state if state in states else ""
+    sort_order = sort_order if sort_order in sorts else ""
+    limit = min(int(limit), 25)
 
-    for userChat in _userChats:
-        # print(userChat)
+    for s in ["opened", "closed", "snoozed"]:
+        _userChats = get_chats(state=s, limit=limit, sort_order=sort_order)
+        for userChat in _userChats[s]:
+            if "managerIds" not in userChat:
+                continue
 
-        # if "manager_ids" not in userChat:
-        #     continue
+            if manager_id in userChat["managerIds"]:
+                _ids.append(userChat["id"])
 
-        if manager_id in userChat["managerIds"]:
-            print(userChat["name"], userChat["id"])
-            print(manager_id, userChat["managerIds"])
-            # _ids.append(userChat["id"])
-
-    # for id in _ids:
-    #     _messages = get_chat_messages(id)["messages"]
-    #     for message in _messages:
-    #         if "blocks" in message and isinstance(message["blocks"], list):
-    #             for block in message["blocks"]:
-    #                 if "type" in block and block["type"] == "text" and "value" in block:
-    #                     # result.append(block["value"])
-    #                     result.append(message)
-    #                     # print(convert_timestamp_to_date(message["createdAt"]), block["value"])
+    print(_ids)
+    for id in _ids:
+        print(id)
+        _messages = get_chat_messages(id)["messages"]
+        for message in _messages:
+            if "plainText" in message:
+                result.append(message["plainText"])
+            
+            # if "blocks" in message and isinstance(message["blocks"], list):
+            #     for block in message["blocks"]:
+            #         if "type" in block and block["type"] == "text" and "value" in block:
+            #             result.append(block["value"])
+                        # result.append(message)
+                        # print(convert_timestamp_to_date(message["createdAt"]), block["value"])
 
     return result
 
