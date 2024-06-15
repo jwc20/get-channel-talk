@@ -71,6 +71,9 @@ def get_chat_messages(chatId: str) -> dict:
         "X-Access-Key": ACCESS_KEY,
         "X-Access-Secret": ACCESS_SECRET,
     }
+
+    # TODO: Add pagination
+    
     response = requests.get(
         "http://api.channel.io/open/v5/user-chats/"
         + chatId
@@ -151,16 +154,16 @@ def get_chats(
     return arr
 
 
-@app.route("/api/managers/<manager_id>/chats", methods=["GET"])
-@app.route("/api/managers/<manager_id>/chats/<state>", methods=["GET"])
-@app.route("/api/managers/<manager_id>/chats/<state>/<limit>", methods=["GET"])
-@app.route(
-    "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"]
-)
-@app.route(
-    "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>/<date>",
-    methods=["GET"],
-)
+# @app.route("/api/managers/<manager_id>/chats", methods=["GET"])
+# @app.route("/api/managers/<manager_id>/chats/<state>", methods=["GET"])
+# @app.route("/api/managers/<manager_id>/chats/<state>/<limit>", methods=["GET"])
+# @app.route(
+#     "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"]
+# )
+# @app.route(
+#     "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>/<date>",
+#     methods=["GET"],
+# )
 def get_chats_by_manager_id(
     manager_id: str,
     state: str = "all",
@@ -221,6 +224,7 @@ def get_chats_by_manager_id(
 
     for chat_id in chat_ids:
         chat_messages = []
+        chat_texts = []
 
         # if any(chat['chat_id'] == chat_id.id for chat in chats):
         #     # check for duplicate chat_id
@@ -241,9 +245,9 @@ def get_chats_by_manager_id(
             for participant in _userChats["participants"]:
                 if message["personId"] == participant["id"]:
                     if "plainText" in message:
-                        # chat_messages.append(
-                        #     f"{convert_timestamp_to_date(message['createdAt'])} |  {participant['name']} |  {message['plainText']}"
-                        # )
+                        chat_texts.append(
+                            f"{convert_timestamp_to_date(message['createdAt'])} |  {participant['name']} |  {message['plainText']}"
+                        )
                         chat_messages.append(
                             {
                                 "created_at": convert_timestamp_to_date(
@@ -270,6 +274,7 @@ def get_chats_by_manager_id(
                 "created_at": created_at,
                 "last_message_date": last_message_date,
                 "messages": chat_messages,
+                "texts": chat_texts,
             }
         )
 

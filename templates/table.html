@@ -13,6 +13,7 @@
             <td>tags</td>
             <td>state</td>
             {# <td>messages</td> #}
+            <td>texts</td>
         </tr>
     </thead>
     <tbody class="chats">
@@ -25,9 +26,9 @@
             <td>{{ chat['state'] }}</td>
             {# <td>{{ chat['messages'] }}</td> #}
             <td>
-                <button hx-get="/api/messages/{{ chat['chat_id'] }}" hx-target="_blank">
-                    See Messages
-                </button>
+                {% for text in chat['texts'] %}
+                {{ text }}<br>
+                {% endfor %}
             </td>
         </tr>
         {% endfor %}
