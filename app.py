@@ -3,8 +3,10 @@ from dotenv import load_dotenv
 import os
 import requests
 from typing import DefaultDict, List, Dict
-from collections import defaultdict
+from collections import defaultdict, deque
 from datetime import datetime
+import base64
+import urllib.parse
 
 from pprintpp import pprint
 
@@ -54,6 +56,8 @@ def get(endpoint: str) -> dict:
     )
     return response.json()
 
+
+# TODO: Add pagination
 @app.route("/api/messages/<chatId>", methods=["GET"])
 def get_chat_messages(chatId: str) -> dict:
     headers = {
@@ -64,32 +68,34 @@ def get_chat_messages(chatId: str) -> dict:
     response = requests.get(
         "http://api.channel.io/open/v5/user-chats/"
         + chatId
-        + "/messages?sortOrder=desc&limit=25",
+        + "/messages?sortOrder=asc&limit=25",
         headers=headers,
         json=True,
     )
     response.encoding = "utf-8"
     return response.json()
 
-@app.route("/api/sessions/<chatId>", methods=["GET"])
-def get_chat_sessions(chatId: str) -> dict:
-    headers = {
-        "Content-Type": "application/json",
-        "X-Access-Key": ACCESS_KEY,
-        "X-Access-Secret": ACCESS_SECRET,
-    }
-    response = requests.get(
-        "http://api.channel.io/open/v5/user-chats/" + chatId + "/sessions",
-        headers=headers,
-        json=True,
-    )
-    response.encoding = "utf-8"
-    return response.json()
+# @app.route("/api/sessions/<chatId>", methods=["GET"])
+# def get_chat_sessions(chatId: str) -> dict:
+#     headers = {
+#         "Content-Type": "application/json",
+#         "X-Access-Key": ACCESS_KEY,
+#         "X-Access-Secret": ACCESS_SECRET,
+#     }
+#     response = requests.get(
+#         "http://api.channel.io/open/v5/user-chats/" + chatId + "/sessions",
+#         headers=headers,
+#         json=True,
+#     )
+#     response.encoding = "utf-8"
+#     return response.json()
 
 # @app.route("/api/userchats", methods=["GET"])
 def get_chats(
     state: str = "opened", sort_order: str = "desc", limit: str = "25", arr: DefaultDict = defaultdict(list)
 ) -> dict:
+
+    # TODO add list of users, add list of managers in the userchats
 
     headers = {
         "Content-Type": "application/json",
@@ -99,35 +105,39 @@ def get_chats(
     
     state = state.lower() if state != "all" else state
     sort_order = sort_order.lower() if sort_order in ["asc", "desc"] else "desc"
-
-    # result = defaultdict(list)
-    # if state == "all":
-    #     for s in ["opened", "closed", "snoozed"]:
-    #         url = (
-    #             f"http://api.channel.io/open/v5/user-chats?state={s}"
-    #             f"&sortOrder={sort_order}&limit={limit}"
-    #         )
-    #         response = requests.get(url, headers=headers, json=True)
-    #         if response.status_code == 200:
-    #             print(s, response.json()["next"])
-    #             result[s].extend(response.json()["userChats"])
-    # else:
-    #     url = f"http://api.channel.io/open/v5/user-chats?state={state}" \
-    #           f"&sortOrder={sort_order}&limit={limit}"
-    #     response = requests.get(url, headers=headers, json=True)
-    #     if response.status_code == 200:
-    #         result[state].extend(response.json()["userChats"])
+    _limit = int(limit)
 
     url = f"http://api.channel.io/open/v5/user-chats?state={state}" \
           f"&sortOrder={sort_order}&limit={limit}"
-    response = requests.get(url, headers=headers, json=True)
-    if response.status_code == 200:
-        arr[state].extend(response.json()["userChats"])
+    
+    while _limit > 0:
+        response = requests.get(url, headers=headers, json=True)
+        # arr[state].extend(response.json()["userChats"])
+        _limit -= 25
+        if response.status_code == 200:
+            arr[state].extend(response.json()["userChats"])
+            if "next" in response.json():
+                next_string = urllib.parse.quote(response.json()["next"], safe='')
+                url += "&since=" + next_string
+                
+                print(arr[state], _limit)
+                # print(response.json()["next"])
+                print(len(response.json()["userChats"]))
+            else:
+                break
+        else:
+            break
+    
+    # response = requests.get(url, headers=headers, json=True)
+    # if response.status_code == 200:
+    #     if "next" in response.json():
+    #         print(response.json()["next"])
+    #         print(len(response.json()["userChats"]))
+    #     arr[state].extend(response.json()["userChats"])
 
     # {k: [*map(pprint, v[:3])] for k, v in arr.items()}
-    print(arr)
+    # print(arr)
     return arr
-    # return response.json()["userChats"]
 
 @app.route("/api/managers/<manager_id>/chats", methods=["GET"])
 @app.route("/api/managers/<manager_id>/chats/<state>", methods=["GET"])
@@ -140,10 +150,11 @@ def check_if_manager_exists_in_userchats(manager_id: str, state: str="all", limi
     states = "all opened closed snoozed".split()
     sorts = "asc desc".split()
     
+    # print(limit)
 
     state = state if state in states else ""
     sort_order = sort_order if sort_order in sorts else ""
-    limit = min(max(int(limit), 500), 25)
+    # limit = min(max(int(limit), 500), 25)
 
     if state == "all":
         for s in ["opened", "closed", "snoozed"]:
@@ -164,13 +175,23 @@ def check_if_manager_exists_in_userchats(manager_id: str, state: str="all", limi
             if manager_id in userChat["managerIds"]:
                 _ids.append(userChat["id"])
 
-    print(_ids)
+    # print(_ids)
     for id in _ids:
         print(id)
         _messages = get_chat_messages(id)["messages"]
+
+        
+        
         for message in _messages:
+            if _userChats["id"] == id and message["personType"] == "user" and _userChats["userId"] == message["id"]:
+                inquirer = _userChats["name"]
+
+            if message["personType"] == "bot":
+                continue
+                
+
             if "plainText" in message:
-                result.append(message["plainText"])
+                result.append(f"{message['personType']}  {message['plainText']}")
             
             # if "blocks" in message and isinstance(message["blocks"], list):
             #     for block in message["blocks"]:
