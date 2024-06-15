@@ -286,6 +286,17 @@ def get_chats_by_manager_id(
     return result
 
 
+# @app.route("/test", methods=["GET"])
+@app.route("/managers/<manager_id>/chats", methods=["GET"])
+@app.route("/managers/<manager_id>/chats/<state>", methods=["GET"])
+@app.route("/managers/<manager_id>/chats/<state>/<limit>", methods=["GET"])
+@app.route("/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"])
+@app.route("/managers/<manager_id>/chats/<state>/<limit>/<sort_order>/<date>",methods=["GET"])
+def get_chats_by_manager_id_html(manager_id: str, state: str = "all", limit: str = "50", sort_order: str = "desc", date: str = None) -> dict:
+    data = get_chats_by_manager_id(manager_id, state, limit, sort_order, date)
+    return render_template("table.html", data=data)
+
+
 # ------------------------------------------------------
 
 

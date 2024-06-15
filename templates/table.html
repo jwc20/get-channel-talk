@@ -1,0 +1,35 @@
+<div>
+    <h3>count: {{ data['count'] }}</h3>
+    <h3>date: {{ data['date'] }}</h3>
+    <h3>{{ data['manager_id'] }}</h3>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <td>chat id</td>
+            <td>created at</td>
+            <td>last message at</td>
+            <td>tags</td>
+            <td>state</td>
+            {# <td>messages</td> #}
+        </tr>
+    </thead>
+    <tbody class="chats">
+        {% for chat in data['chats'] %}
+        <tr>
+            <td>{{ chat['chat_id'] }}</td>
+            <td>{{ chat['created_at'] }}</td>
+            <td>{{ chat['last_message_date'] }}</td>
+            <td>{{ chat['tags'] }}</td>
+            <td>{{ chat['state'] }}</td>
+            {# <td>{{ chat['messages'] }}</td> #}
+            <td>
+                <button hx-get="/api/messages/{{ chat['chat_id'] }}" hx-target="_blank">
+                    See Messages
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
