@@ -5,7 +5,6 @@ import requests
 from typing import DefaultDict, List, Dict
 from collections import defaultdict, namedtuple
 from datetime import datetime, timezone
-import base64
 import urllib.parse
 
 from pprintpp import pprint
@@ -65,7 +64,6 @@ def get(endpoint: str) -> dict:
     return response.json()
 
 
-# TODO: Add pagination
 @app.route("/api/messages/<chatId>", methods=["GET"])
 def get_chat_messages(chatId: str) -> dict:
     headers = {
@@ -84,23 +82,6 @@ def get_chat_messages(chatId: str) -> dict:
     return response.json()
 
 
-# @app.route("/api/sessions/<chatId>", methods=["GET"])
-# def get_chat_sessions(chatId: str) -> dict:
-#     headers = {
-#         "Content-Type": "application/json",
-#         "X-Access-Key": ACCESS_KEY,
-#         "X-Access-Secret": ACCESS_SECRET,
-#     }
-#     response = requests.get(
-#         "http://api.channel.io/open/v5/user-chats/" + chatId + "/sessions",
-#         headers=headers,
-#         json=True,
-#     )
-#     response.encoding = "utf-8"
-#     return response.json()
-
-
-# @app.route("/api/userchats", methods=["GET"])
 def get_chats(
     state: str = "opened",
     sort_order: str = "desc",
@@ -125,10 +106,7 @@ def get_chats(
 
     while _limit > 0:
         response = requests.get(url, headers=headers, json=True)
-
-        # TODO add list of users, add list of managers in the userchats
         participants = []
-
         userChats = response.json()["userChats"]
 
         if "managers" in response.json():
@@ -150,41 +128,26 @@ def get_chats(
                                 "type": "manager",
                             }
                         )
-                        # print({"id": managerId, "name": manager["name"], "type": "manager"})
 
         for participant in participants:
             if not any(d["id"] == participant["id"] for d in arr["participants"]):
                 arr["participants"].append(participant)
 
         arr[state].extend(userChats)
-
-        # print(arr["participants"])
-
-        # arr[state].extend(response.json()["userChats"])
         _limit -= 25
         if response.status_code == 200:
 
             if "next" in response.json():
                 next_string = urllib.parse.quote(response.json()["next"], safe="")
                 url += "&since=" + next_string
-
-                # print(arr[state], _limit)
-                # print(response.json()["next"])
-                # print(len(response.json()["userChats"]))
             else:
                 break
         else:
             break
 
-    # response = requests.get(url, headers=headers, json=True)
-    # if response.status_code == 200:
-    #     if "next" in response.json():
-    #         print(response.json()["next"])
-    #         print(len(response.json()["userChats"]))
-    #     arr[state].extend(response.json()["userChats"])
-
     # {k: [*map(pprint, v[:3])] for k, v in arr.items()}
-    # print(arr)
+    # pprint(arr)
+
     return arr
 
 
@@ -229,8 +192,16 @@ def get_chats_by_manager_id(
                     # _ids.append(userChat["id"])
                     if not any(chat_id.id == userChat["id"] for chat_id in chat_ids):
                         tags = userChat.get("tags")
-                        chat_ids.append(ChatID(userChat["id"], tags, s, userChat["createdAt"], manager_id))
-                    
+                        chat_ids.append(
+                            ChatID(
+                                userChat["id"],
+                                tags,
+                                s,
+                                userChat["createdAt"],
+                                manager_id,
+                            )
+                        )
+
                     # print([chat_ids[i].id for i in range(len(chat_ids))])
     else:
         _userChats = get_chats(
@@ -244,7 +215,9 @@ def get_chats_by_manager_id(
                 if "tags" not in userChat:
                     continue
                 tags = userChat[tags]
-                chat_ids.append(ChatID(userChat["id"], tags, s, userChat["createdAt"], manager_id))
+                chat_ids.append(
+                    ChatID(userChat["id"], tags, s, userChat["createdAt"], manager_id)
+                )
 
     for chat_id in chat_ids:
         chat_messages = []
@@ -252,10 +225,8 @@ def get_chats_by_manager_id(
         # if any(chat['chat_id'] == chat_id.id for chat in chats):
         #     # check for duplicate chat_id
         #     continue
-        
-        _messages = get_chat_messages(chat_id.id)["messages"]
 
- 
+        _messages = get_chat_messages(chat_id.id)["messages"]
 
         for message in _messages:
             message_created_at = convert_timestamp_to_date_without_time(
@@ -290,8 +261,6 @@ def get_chats_by_manager_id(
         created_at = chat_messages[0]["created_at"]
         last_message_date = chat_messages[-1]["created_at"]
 
-
-
         chats.append(
             {
                 "chat_id": chat_id.id,
@@ -304,9 +273,7 @@ def get_chats_by_manager_id(
             }
         )
 
-
-
-    # do this on the client side
+    # TODO: do this on the client side
     # manager_ids = [chat["manager_id"] for chat in chats]
     # if manager_id not in manager_ids:
     #     return {}
