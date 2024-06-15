@@ -19,6 +19,7 @@ in pkgs.mkShell rec {
                 python-dotenv
                 requests
                 flask
+                pprintpp
             ];
         })
     ]);
