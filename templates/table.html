@@ -1,35 +1,48 @@
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
+/>
+<style>
+    body {
+        max-width: 90%;
+    }
+
+    table {
+        width: auto;
+        font-size: small;
+    }
+</style>
+
 <div>
-    <h3>count: {{ data['count'] }}</h3>
-    <h3>date: {{ data['date'] }}</h3>
     <h3>{{ data['manager_id'] }}</h3>
+    <h3>date: {{ data['date'] }}</h3>
+    <h3>count: {{ data['count'] }}</h3>
 </div>
 
 <table>
     <thead>
         <tr>
+            {#
             <td>chat id</td>
-            <td>created at</td>
+            #}
+            <td style="width: 150px">time</td>
             <td>last message at</td>
             <td>tags</td>
             <td>state</td>
-            {# <td>messages</td> #}
+            {#
+            <td>messages</td>
+            #}
             <td>texts</td>
         </tr>
     </thead>
     <tbody class="chats">
         {% for chat in data['chats'] %}
         <tr>
-            <td>{{ chat['chat_id'] }}</td>
-            <td>{{ chat['created_at'] }}</td>
+            <td style="width: 100px">{{ chat['created_at'].split()[1] }}</td>
             <td>{{ chat['last_message_date'] }}</td>
-            <td>{{ chat['tags'] }}</td>
+            <td style="width: 200px">{% if chat['tags'] %}{% for tag in chat['tags'] %}{{ tag }}<br />{% if not loop.last %}{% endif %}{% endfor %}{% else %}None{% endif %}</td>
             <td>{{ chat['state'] }}</td>
-            {# <td>{{ chat['messages'] }}</td> #}
-            <td>
-                {% for text in chat['texts'] %}
-                {{ text }}<br>
-                {% endfor %}
-            </td>
+            <td>{% for text in chat['texts'] %}{{ text }}<br />{% if not loop.last %}{% endif %}{% endfor %}</td>
         </tr>
         {% endfor %}
     </tbody>

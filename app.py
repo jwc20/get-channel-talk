@@ -4,7 +4,7 @@ import os
 import requests
 from typing import DefaultDict, List, Dict
 from collections import defaultdict, namedtuple
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import urllib.parse
 
 from pprintpp import pprint
@@ -22,7 +22,7 @@ def convert_timestamp_to_date(timestamp: int) -> str:
     input: timestamp in milliseconds
     output: date in the format 'Year-Month-Day Hour:Minute:Second'
     """
-    date_time = datetime.fromtimestamp(timestamp / 1000, timezone.utc)
+    date_time = datetime.fromtimestamp(timestamp / 1000, timezone(timedelta(hours=9)))
     return date_time.strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -31,7 +31,7 @@ def convert_timestamp_to_date_without_time(timestamp: int) -> str:
     input: timestamp in milliseconds
     output: date in the format 'Year-Month-Day'
     """
-    date_time = datetime.fromtimestamp(timestamp / 1000, timezone.utc)
+    date_time = datetime.fromtimestamp(timestamp / 1000, timezone(timedelta(hours=9)))
     return date_time.strftime("%Y-%m-%d")
 
 
@@ -245,8 +245,12 @@ def get_chats_by_manager_id(
             for participant in _userChats["participants"]:
                 if message["personId"] == participant["id"]:
                     if "plainText" in message:
+                        manager_arrow = ">> " if participant["type"] == "manager" else ""
+                        # chat_texts.append(
+                        #     f"{manager_arrow} {convert_timestamp_to_date(message['createdAt']).split()[1][0:5]} | {participant['name']}: {message['plainText']}"
+                        # )
                         chat_texts.append(
-                            f"{convert_timestamp_to_date(message['createdAt'])} |  {participant['name']} |  {message['plainText']}"
+                            f"{manager_arrow}{participant['name']}: {message['plainText']}"
                         )
                         chat_messages.append(
                             {
