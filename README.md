@@ -1,6 +1,4 @@
-# hyper-channel
-
-🚀
+# hyper-channel 🚀
 
 ## Endpoints
 

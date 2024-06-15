@@ -1,0 +1,24 @@
+<table>
+    <thead>
+        <tr>
+            <td>chat id</td>
+            <td>created at</td>
+            <td>last message</td>
+            <td>tags</td>
+            <td>state</td>
+            <td>messages</td>
+        </tr>
+    </thead>
+    <tbody class="chats">
+        {% for chat in chats %}
+        <tr>
+            <td>{{ chat.id }}</td>
+            <td>{{ chat.created_at }}</td>
+            <td>{{ chat.last_message }}</td>
+            <td>{{ chat.tags }}</td>
+            <td>{{ chat.state }}</td>
+            <td>{{ chat.messages }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
