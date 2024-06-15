@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 import requests
 from typing import DefaultDict, List, Dict
-from collections import defaultdict, deque
+from collections import defaultdict, namedtuple
 from datetime import datetime, timezone
 import base64
 import urllib.parse
@@ -16,22 +16,26 @@ load_dotenv()
 ACCESS_KEY = os.getenv("ACCESS_KEY")
 ACCESS_SECRET = os.getenv("ACCESS_SECRET")
 
+
 # ---Helper Functions-----------------------------------
 def convert_timestamp_to_date(timestamp: int) -> str:
     """
     input: timestamp in milliseconds
     output: date in the format 'Year-Month-Day Hour:Minute:Second'
     """
-    date_time =  datetime.fromtimestamp(timestamp / 1000, timezone.utc)
+    date_time = datetime.fromtimestamp(timestamp / 1000, timezone.utc)
     return date_time.strftime("%Y-%m-%d %H:%M:%S")
+
 
 def convert_timestamp_to_date_without_time(timestamp: int) -> str:
     """
     input: timestamp in milliseconds
     output: date in the format 'Year-Month-Day'
     """
-    date_time =  datetime.fromtimestamp(timestamp / 1000, timezone.utc)
+    date_time = datetime.fromtimestamp(timestamp / 1000, timezone.utc)
     return date_time.strftime("%Y-%m-%d")
+
+
 # ------------------------------------------------------
 # ---Routes---------------------------------------------
 
@@ -191,22 +195,26 @@ def get_chats(
     "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"]
 )
 @app.route(
-    "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>/<date>", methods=["GET"]
+    "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>/<date>",
+    methods=["GET"],
 )
 def get_chats_by_manager_id(
-    manager_id: str, state: str = "all", limit: str = "25", sort_order: str = "desc", date: str = None
+    manager_id: str,
+    state: str = "all",
+    limit: str = "50",
+    sort_order: str = "desc",
+    date: str = None,
 ) -> List[dict]:
-    result = []
-    _ids = []
+    result = {}
+    chats = []
+    chat_ids = []
+    ChatID = namedtuple("ChatID", ["id", "tags", "state", "created_at", "manager_id"])
     _arr = defaultdict(list)
     states = "all opened closed snoozed".split()
     sorts = "asc desc".split()
 
-    # print(limit)
-
     state = state if state in states else ""
     sort_order = sort_order if sort_order in sorts else ""
-    # limit = min(max(int(limit), 500), 25)
 
     if state == "all":
         for s in ["opened", "closed", "snoozed"]:
@@ -218,8 +226,12 @@ def get_chats_by_manager_id(
                     continue
 
                 if manager_id in userChat["managerIds"]:
-                    _ids.append(userChat["id"])
-
+                    # _ids.append(userChat["id"])
+                    if not any(chat_id.id == userChat["id"] for chat_id in chat_ids):
+                        tags = userChat.get("tags")
+                        chat_ids.append(ChatID(userChat["id"], tags, s, userChat["createdAt"], manager_id))
+                    
+                    # print([chat_ids[i].id for i in range(len(chat_ids))])
     else:
         _userChats = get_chats(
             state=state, limit=limit, sort_order=sort_order, arr=_arr
@@ -229,18 +241,29 @@ def get_chats_by_manager_id(
                 continue
 
             if manager_id in userChat["managerIds"]:
-                _ids.append(userChat["id"])
+                if "tags" not in userChat:
+                    continue
+                tags = userChat[tags]
+                chat_ids.append(ChatID(userChat["id"], tags, s, userChat["createdAt"], manager_id))
 
-    for id in _ids:
+    for chat_id in chat_ids:
         chat_messages = []
-        _messages = get_chat_messages(id)["messages"]
+
+        # if any(chat['chat_id'] == chat_id.id for chat in chats):
+        #     # check for duplicate chat_id
+        #     continue
+        
+        _messages = get_chat_messages(chat_id.id)["messages"]
+
+ 
 
         for message in _messages:
-            message_created_at = convert_timestamp_to_date_without_time(message["createdAt"])
-            
+            message_created_at = convert_timestamp_to_date_without_time(
+                message["createdAt"]
+            )
+
             if date is not None and message_created_at != date:
                 break
-                
 
             if message["personType"] == "bot":
                 continue
@@ -252,8 +275,11 @@ def get_chats_by_manager_id(
                         # )
                         chat_messages.append(
                             {
-                                "created_at": convert_timestamp_to_date(message["createdAt"]),
+                                "created_at": convert_timestamp_to_date(
+                                    message["createdAt"]
+                                ),
                                 "participant_name": participant["name"],
+                                "participant_id": participant["id"],
                                 "chat_message": message["plainText"],
                             }
                         )
@@ -264,15 +290,31 @@ def get_chats_by_manager_id(
         created_at = chat_messages[0]["created_at"]
         last_message_date = chat_messages[-1]["created_at"]
 
-        result.append(
+
+
+        chats.append(
             {
-                "chat_id": id,
-                "created_at": str(created_at),
-                "last_message_date": str(last_message_date),
+                "chat_id": chat_id.id,
+                "state": chat_id.state,
+                "tags": chat_id.tags,
+                "manager_id": chat_id.manager_id,
+                "created_at": created_at,
+                "last_message_date": last_message_date,
                 "messages": chat_messages,
             }
         )
 
+
+
+    # do this on the client side
+    # manager_ids = [chat["manager_id"] for chat in chats]
+    # if manager_id not in manager_ids:
+    #     return {}
+
+    result["manager_id"] = manager_id
+    result["count"] = len(chats)
+    result["date"] = date
+    result["chats"] = chats
 
     return result
 
