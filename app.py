@@ -238,12 +238,31 @@ def check_if_manager_exists_in_userchats(
             for participant in _userChats["participants"]:
                 if message["personId"] == participant["id"]:
                     if "plainText" in message:
+                        # chat_messages.append(
+                        #     f"{convert_timestamp_to_date(message['createdAt'])} |  {participant['name']} |  {message['plainText']}"
+                        # )
                         chat_messages.append(
-                            # TODO: change this into a dictionary
-                            f"{convert_timestamp_to_date(message['createdAt'])} |  {participant['name']} |  {message['plainText']}"
+                            {
+                                "created_at": convert_timestamp_to_date(message["createdAt"]),
+                                "participant_name": participant["name"],
+                                "chat_message": message["plainText"],
+                            }
                         )
 
-        result.append({"chat_id": id, "messages": chat_messages})
+        # result.append({"chat_id": id, "messages": chat_messages})
+
+        created_at = chat_messages[0]["created_at"]
+        last_message_date = chat_messages[-1]["created_at"]
+
+        result.append(
+            {
+                "chat_id": id,
+                "created_at": str(created_at),
+                "last_message_date": str(last_message_date),
+                "messages": chat_messages,
+            }
+        )
+
 
     return result
 
