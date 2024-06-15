@@ -95,7 +95,7 @@ def get_chats(
     state: str = "opened", sort_order: str = "desc", limit: str = "25", arr: DefaultDict = defaultdict(list)
 ) -> dict:
 
-    # TODO add list of users, add list of managers in the userchats
+    
 
     headers = {
         "Content-Type": "application/json",
@@ -112,17 +112,45 @@ def get_chats(
     
     while _limit > 0:
         response = requests.get(url, headers=headers, json=True)
+            
+        # TODO add list of users, add list of managers in the userchats
+        participants = []
+
+        userChats = response.json()["userChats"]
+
+        if "managers" in response.json():
+            managers = response.json()["managers"]
+
+        for userChat in userChats:
+            participants.append({"id": userChat["userId"], "name": userChat["name"], "type": "user"})
+
+            if "managerIds" in userChat:
+                for managerId in userChat["managerIds"]:
+                    manager = next((m for m in managers if m["id"] == managerId), None)
+                    if manager:
+                        participants.append({"id": managerId, "name": manager["name"], "type": "manager"})
+                        # print({"id": managerId, "name": manager["name"], "type": "manager"})
+        
+        
+        arr[state].extend(participants)
+        arr[state].extend(userChats)
+
+
+
+
+        
+        
         # arr[state].extend(response.json()["userChats"])
         _limit -= 25
         if response.status_code == 200:
-            arr[state].extend(response.json()["userChats"])
+            
             if "next" in response.json():
                 next_string = urllib.parse.quote(response.json()["next"], safe='')
                 url += "&since=" + next_string
                 
-                print(arr[state], _limit)
+                # print(arr[state], _limit)
                 # print(response.json()["next"])
-                print(len(response.json()["userChats"]))
+                # print(len(response.json()["userChats"]))
             else:
                 break
         else:
@@ -135,7 +163,7 @@ def get_chats(
     #         print(len(response.json()["userChats"]))
     #     arr[state].extend(response.json()["userChats"])
 
-    # {k: [*map(pprint, v[:3])] for k, v in arr.items()}
+    {k: [*map(pprint, v[:3])] for k, v in arr.items()}
     # print(arr)
     return arr
 
