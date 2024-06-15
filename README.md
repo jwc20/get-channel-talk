@@ -4,36 +4,20 @@
 
 ## Endpoints
 
-### GET /api/userchats
+### GET /api/managers/{manager_id}/chats/{state}/{limit}/{sort_order}/{date}
 
 ```json
 {
-    'opened:'
-    [
+    "chats": [
         {
-        'askedAt': 1718349814315,
-        'id': '12345',
-        'state': 'opened',
-        ...
-        }, ... 
-    ]
-    'closed:'
-    [
-        {
-        'askedAt': 1718349814315,
-        'id': '12355',
-        'state': 'opened',
-        ...
+            "chat_message": "Hello, world!",
+            "created_at": "2024-06-11 08:29:01",
+            "participant_id": "69420",
+            "participant_name": "John Doe",
         }, ...
-    ]
-    'snoozed:'
-    [
-        {
-        'askedAt': 1718349819315,
-        'id': '12365',
-        'state': 'opened',
-        ...
-        }, ...
-    ]
+    ],
+    "count": 69,
+    "date": "2024-06-11",
+    "manager_id": "42069"
 }
 ```
