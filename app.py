@@ -132,12 +132,13 @@ def get_chats(
                         # print({"id": managerId, "name": manager["name"], "type": "manager"})
         
         
-        arr[state].extend(participants)
+        for participant in participants:
+            if not any(d["id"] == participant["id"] for d in arr["participants"]):
+                arr["participants"].append(participant)
+
         arr[state].extend(userChats)
 
-
-
-
+        # print(arr["participants"])
         
         
         # arr[state].extend(response.json()["userChats"])
@@ -163,7 +164,7 @@ def get_chats(
     #         print(len(response.json()["userChats"]))
     #     arr[state].extend(response.json()["userChats"])
 
-    {k: [*map(pprint, v[:3])] for k, v in arr.items()}
+    # {k: [*map(pprint, v[:3])] for k, v in arr.items()}
     # print(arr)
     return arr
 
@@ -205,21 +206,28 @@ def check_if_manager_exists_in_userchats(manager_id: str, state: str="all", limi
 
     # print(_ids)
     for id in _ids:
-        print(id)
+        # print(id)
         _messages = get_chat_messages(id)["messages"]
 
         
         
         for message in _messages:
-            if _userChats["id"] == id and message["personType"] == "user" and _userChats["userId"] == message["id"]:
-                inquirer = _userChats["name"]
 
             if message["personType"] == "bot":
                 continue
+
+            # if message["personId"] in [_userChats["participants"][p]["id"] for p in _userChats["participants"]]:
+            #     print(message["personType"], message["plainText"])
+
+            for participant in _userChats["participants"]:
+                if message["personId"] == participant["id"]:
+                    if "plainText" in message:
+                        result.append(f"{participant['name']} |  {message['plainText']}")
+                
                 
 
-            if "plainText" in message:
-                result.append(f"{message['personType']}  {message['plainText']}")
+            # if "plainText" in message:
+            #     result.append(f"{message['personType']} |  {message['plainText']}")
             
             # if "blocks" in message and isinstance(message["blocks"], list):
             #     for block in message["blocks"]:
