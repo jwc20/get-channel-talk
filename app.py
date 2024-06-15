@@ -17,8 +17,6 @@ ACCESS_KEY = os.getenv("ACCESS_KEY")
 ACCESS_SECRET = os.getenv("ACCESS_SECRET")
 
 # ---Helper Functions-----------------------------------
-
-
 def convert_timestamp_to_date(timestamp: int) -> str:
     """
     input: timestamp in milliseconds
@@ -27,7 +25,13 @@ def convert_timestamp_to_date(timestamp: int) -> str:
     date_time =  datetime.fromtimestamp(timestamp / 1000, timezone.utc)
     return date_time.strftime("%Y-%m-%d %H:%M:%S")
 
-
+def convert_timestamp_to_date_without_time(timestamp: int) -> str:
+    """
+    input: timestamp in milliseconds
+    output: date in the format 'Year-Month-Day'
+    """
+    date_time =  datetime.fromtimestamp(timestamp / 1000, timezone.utc)
+    return date_time.strftime("%Y-%m-%d")
 # ------------------------------------------------------
 # ---Routes---------------------------------------------
 
@@ -186,8 +190,11 @@ def get_chats(
 @app.route(
     "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"]
 )
-def check_if_manager_exists_in_userchats(
-    manager_id: str, state: str = "all", limit: str = "25", sort_order: str = "desc"
+@app.route(
+    "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>/<date>", methods=["GET"]
+)
+def get_chats_by_manager_id(
+    manager_id: str, state: str = "all", limit: str = "25", sort_order: str = "desc", date: str = None
 ) -> List[dict]:
     result = []
     _ids = []
@@ -224,17 +231,19 @@ def check_if_manager_exists_in_userchats(
             if manager_id in userChat["managerIds"]:
                 _ids.append(userChat["id"])
 
-    # print(_ids)
     for id in _ids:
-        # print(id)
         chat_messages = []
-
         _messages = get_chat_messages(id)["messages"]
 
         for message in _messages:
+            message_created_at = convert_timestamp_to_date_without_time(message["createdAt"])
+            
+            if date is not None and message_created_at != date:
+                break
+                
+
             if message["personType"] == "bot":
                 continue
-
             for participant in _userChats["participants"]:
                 if message["personId"] == participant["id"]:
                     if "plainText" in message:
@@ -249,7 +258,8 @@ def check_if_manager_exists_in_userchats(
                             }
                         )
 
-        # result.append({"chat_id": id, "messages": chat_messages})
+        if len(chat_messages) == 0:
+            continue
 
         created_at = chat_messages[0]["created_at"]
         last_message_date = chat_messages[-1]["created_at"]
