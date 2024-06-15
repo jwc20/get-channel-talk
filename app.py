@@ -6,6 +6,8 @@ from typing import DefaultDict, List, Dict
 from collections import defaultdict
 from datetime import datetime
 
+from pprintpp import pprint
+
 app = Flask(__name__)
 
 load_dotenv()
@@ -66,7 +68,7 @@ def get_chat_messages(chatId: str) -> dict:
     response = requests.get(
         "http://api.channel.io/open/v5/user-chats/"
         + chatId
-        + "/messages?sortOrder=desc&limit=1000",
+        + "/messages?sortOrder=desc&limit=25",
         headers=headers,
         json=True,
     )
@@ -90,38 +92,7 @@ def get_chat_sessions(chatId: str) -> dict:
     return response.json()
 
 
-# 339530
-# @app.route("/api/check/<managerId>")
-# def check_if_manager_exists_in_userchats(managerId):
-#     result = collections.defaultdict(list)
-#     _ids = collections.defaultdict(list)
-#     states = "opened closed snoozed".split()
-
-#     _userChats = get_chats()
-#     for userChat in _userChats:
-#         # print(userChat)
-
-#         # if "managerIds" not in userChat:
-#         #     continue
-
-#         if managerId in userChat["managerIds"]:
-#             print(userChat["name"], userChat["id"])
-#             print(managerId, userChat["managerIds"])
-#             _ids.append(userChat["id"])
-
-#     for id in _ids:
-#         _messages = get_chat_messages(id)["messages"]
-#         for message in _messages:
-#             if "blocks" in message and isinstance(message["blocks"], list):
-#                 for block in message["blocks"]:
-#                     if "type" in block and block["type"] == "text" and "value" in block:
-#                         # result.append(block["value"])
-#                         result.append(message)
-#                         # print(convert_timestamp_to_date(message["createdAt"]), block["value"])
-
-#     return result
-
-# @app.route("/api/userchats", methods=["GET"])
+@app.route("/api/userchats", methods=["GET"])
 def get_chats(
     state: str = "opened", sort_order: str = "desc", limit: str = "25"
 ) -> dict:
@@ -153,7 +124,13 @@ def get_chats(
         if response.status_code == 200:
             result[state].extend(response.json()["userChats"])
 
-    # print(result)
+    # for k, v in result.items():
+    #     pprint(f"{k}:")
+    #     for i in v[:3]:
+    #         pprint(i)
+
+    print(result)
+
     return result
     # return response.json()["userChats"]
 

@@ -13,15 +13,15 @@
 
 ```json
 {
-    "next": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MjUwMzQsInNpbmNlIjoiMjAyMS0wOC0xNlQxNzoxNzoxMi4wMDAwMDAwMDAwIn0.1Z
-    "user_chats": [
+    "next": "eyJ0eXAiOiJKVasdLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MjUwMzQsInNpbmNlIjoiMjAyMS0wOC0xNlQxNzoxNzoxMi4wMDAwMDAwMDAwIn0.1Z
+    "opened": [
         {
-            "id": 25034,
+            "id": "666be0dasd0092084ce1",
             "state": "opened",
             ...
         },
         {
-            "id": 25035,
+            "id": "666be0de7b0123084ce1",
             "state": "opened",
             ...
         },
