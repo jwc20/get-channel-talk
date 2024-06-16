@@ -1,5 +1,9 @@
 # hyper-channel 🚀
 
+A simple application to view chat messages between managers and participants using the [channel.io open API](https://api-doc.channel.io/).
+
+![Capture](capture.png)
+
 ## Endpoints
 
 ### GET /api/managers/{manager_id}/chats/{state}/{limit}/{sort_order}/{date}
