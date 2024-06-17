@@ -157,18 +157,20 @@ def get_chats(
     # loop over participants that are type user
 
     chat_users = [d for d in arr['participants'] if d['type'] == 'user']
-    users = response.json()["users"]
+    
+    if 'users' in response.json():
+        users = response.json()["users"]
 
-    for u in chat_users:
-        for user in users:
-            church_info = {}
-            if u['id'] == user['id']:
-                church_info = user['profile']
-                church_info['user_id'] = user['id']
-                church_infos.append(church_info)
+        for u in chat_users:
+            for user in users:
+                church_info = {}
+                if u['id'] == user['id']:
+                    church_info = user['profile']
+                    church_info['user_id'] = user['id']
+                    church_infos.append(church_info)
 
     arr['church_infos'] = church_infos
-    pprint(arr)
+    # pprint(arr)
 
     return arr
 
@@ -210,6 +212,9 @@ def get_chats_by_manager_id(
                 if "managerIds" not in userChat:
                     continue
 
+                # pprint(userChat['userId'])
+                
+                
                 
                 # TODO: get user, use the id
 
@@ -217,6 +222,13 @@ def get_chats_by_manager_id(
                     # _ids.append(userChat["id"])
                     if not any(chat_id.id == userChat["id"] for chat_id in chat_ids):
                         tags = userChat.get("tags")
+                        user_id = userChat['userId']
+                        # user_profile = _userChats['profile']
+                        # if user_profile['user_id'] == user_id:
+                        #     chat_user = user_profile
+                        # else:
+                        #     chat_user = None
+
                         chat_ids.append(
                             ChatID(
                                 userChat["id"],
@@ -224,10 +236,11 @@ def get_chats_by_manager_id(
                                 s,
                                 userChat["createdAt"],
                                 manager_id,
+                                # chat_user
                             )
                         )
 
-                    # print([chat_ids[i].id for i in range(len(chat_ids))])
+                    print([chat_ids[i].id for i in range(len(chat_ids))])
     else:
         _userChats = get_chats(
             state=state, limit=limit, sort_order=sort_order, arr=_arr
