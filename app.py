@@ -72,16 +72,17 @@ def get_chat_messages(chatId: str) -> dict:
         "X-Access-Secret": ACCESS_SECRET,
     }
 
-    # TODO: Add pagination
+    # TODO: Add pagination (?)
     
     response = requests.get(
         "http://api.channel.io/open/v5/user-chats/"
         + chatId
-        + "/messages?sortOrder=asc&limit=25",
+        + "/messages?sortOrder=asc&limit=50",
         headers=headers,
         json=True,
     )
     response.encoding = "utf-8"
+    # pprint(response.json())
     return response.json()
 
 
@@ -110,7 +111,9 @@ def get_chats(
     while _limit > 0:
         response = requests.get(url, headers=headers, json=True)
         participants = []
+        church_infos = []
         userChats = response.json()["userChats"]
+        
 
         if "managers" in response.json():
             managers = response.json()["managers"]
@@ -150,6 +153,22 @@ def get_chats(
 
     # {k: [*map(pprint, v[:3])] for k, v in arr.items()}
     # pprint(arr)
+
+    # loop over participants that are type user
+
+    chat_users = [d for d in arr['participants'] if d['type'] == 'user']
+    users = response.json()["users"]
+
+    for u in chat_users:
+        for user in users:
+            church_info = {}
+            if u['id'] == user['id']:
+                church_info = user['profile']
+                church_info['user_id'] = user['id']
+                church_infos.append(church_info)
+
+    arr['church_infos'] = church_infos
+    pprint(arr)
 
     return arr
 
@@ -191,6 +210,9 @@ def get_chats_by_manager_id(
                 if "managerIds" not in userChat:
                     continue
 
+                
+                # TODO: get user, use the id
+
                 if manager_id in userChat["managerIds"]:
                     # _ids.append(userChat["id"])
                     if not any(chat_id.id == userChat["id"] for chat_id in chat_ids):
@@ -217,9 +239,9 @@ def get_chats_by_manager_id(
             if manager_id in userChat["managerIds"]:
                 if "tags" not in userChat:
                     continue
-                tags = userChat[tags]
+                tags = userChat.get("tags")
                 chat_ids.append(
-                    ChatID(userChat["id"], tags, s, userChat["createdAt"], manager_id)
+                    ChatID(userChat["id"], tags, state, userChat["createdAt"], manager_id)
                 )
 
     for chat_id in chat_ids:
