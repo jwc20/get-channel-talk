@@ -22,9 +22,8 @@
 <table>
     <thead>
         <tr>
-            {#
-            <td>chat id</td>
-            #}
+            <td>church</td>
+            <td>senior pastor</td>
             <td style="width: 150px">time</td>
             <td>last message at</td>
             <td>tags</td>
@@ -38,6 +37,8 @@
     <tbody class="chats">
         {% for chat in data['chats'] %}
         <tr>
+            {# <td>{{ data }}</td> #}
+            <td></td>
             <td style="width: 100px">{{ chat['created_at'].split()[1] }}</td>
             <td>{{ chat['last_message_date'] }}</td>
             <td style="width: 200px">{% if chat['tags'] %}{% for tag in chat['tags'] %}{{ tag }}<br />{% if not loop.last %}{% endif %}{% endfor %}{% else %}None{% endif %}</td>
