@@ -73,11 +73,11 @@ def get_chat_messages(chatId: str) -> dict:
     }
 
     # TODO: Add pagination (?)
-    
+
     response = requests.get(
         "http://api.channel.io/open/v5/user-chats/"
         + chatId
-        + "/messages?sortOrder=asc&limit=50",
+        + "/messages?sortOrder=asc&limit=100",
         headers=headers,
         json=True,
     )
@@ -113,7 +113,7 @@ def get_chats(
         participants = []
         church_infos = []
         userChats = response.json()["userChats"]
-        
+
 
         if "managers" in response.json():
             managers = response.json()["managers"]
@@ -157,7 +157,7 @@ def get_chats(
     # loop over participants that are type user
 
     chat_users = [d for d in arr['participants'] if d['type'] == 'user']
-    
+
     if 'users' in response.json():
         users = response.json()["users"]
 
@@ -166,12 +166,11 @@ def get_chats(
                 church_info = {}
                 if u['id'] == user['id']:
                     church_info = user['profile']
-                    church_info['user_id'] = user['id']
+                    church_info['user_id'] = user['id'] # use this to check later
                     church_infos.append(church_info)
 
     arr['church_infos'] = church_infos
     # pprint(arr)
-
     return arr
 
 
@@ -195,7 +194,7 @@ def get_chats_by_manager_id(
     result = {}
     chats = []
     chat_ids = []
-    ChatID = namedtuple("ChatID", ["id", "tags", "state", "created_at", "manager_id"])
+    ChatID = namedtuple("ChatID", ["id", "tags", "state", "created_at", "manager_id", "user_id"])
     _arr = defaultdict(list)
     states = "all opened closed snoozed".split()
     sorts = "asc desc".split()
@@ -213,9 +212,9 @@ def get_chats_by_manager_id(
                     continue
 
                 # pprint(userChat['userId'])
-                
-                
-                
+
+
+
                 # TODO: get user, use the id
 
                 if manager_id in userChat["managerIds"]:
@@ -223,11 +222,9 @@ def get_chats_by_manager_id(
                     if not any(chat_id.id == userChat["id"] for chat_id in chat_ids):
                         tags = userChat.get("tags")
                         user_id = userChat['userId']
-                        # user_profile = _userChats['profile']
-                        # if user_profile['user_id'] == user_id:
-                        #     chat_user = user_profile
-                        # else:
-                        #     chat_user = None
+
+                        user_profile = next((p for p in _userChats['profile'] if p['user_id'] == user_id), None)
+                        chat_user = user_profile
 
                         chat_ids.append(
                             ChatID(
@@ -236,11 +233,11 @@ def get_chats_by_manager_id(
                                 s,
                                 userChat["createdAt"],
                                 manager_id,
-                                # chat_user
+                                chat_user
                             )
                         )
 
-                    print([chat_ids[i].id for i in range(len(chat_ids))])
+                    # print([chat_ids[i].id for i in range(len(chat_ids))])
     else:
         _userChats = get_chats(
             state=state, limit=limit, sort_order=sort_order, arr=_arr
@@ -322,6 +319,9 @@ def get_chats_by_manager_id(
     # if manager_id not in manager_ids:
     #     return {}
 
+
+
+    # result["church"] = church_name
     result["manager_id"] = manager_id
     result["count"] = len(chats)
     result["date"] = date
