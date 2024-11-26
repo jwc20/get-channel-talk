@@ -319,18 +319,24 @@ def get_chats_by_manager_id(
         created_at = chat_messages[0]["created_at"]
         last_message_date = chat_messages[-1]["created_at"]
 
-        chats.append(
-            {
-                "chat_id": chat_id.id,
-                "state": chat_id.state,
-                "tags": chat_id.tags,
-                "manager_id": chat_id.manager_id,
-                "created_at": created_at,
-                "last_message_date": last_message_date,
-                "messages": chat_messages,
-                "texts": chat_texts,
-            }
-        )
+        chats.append({
+            "chat_id": chat_id.id,
+            "state": chat_id.state,
+            "tags": chat_id.tags,
+            "manager_id": chat_id.manager_id,
+            "created_at": created_at,
+            "last_message_date": last_message_date,
+            "messages": chat_messages,
+            "texts": chat_texts,
+            "participants": [  # Add this new field
+                {
+                    "name": participant["name"],
+                    "type": participant["type"]
+                } 
+                for participant in _userChats["participants"] 
+                if any(msg["participant_id"] == participant["id"] for msg in chat_messages)
+            ]
+        })
 
     result["manager_id"] = manager_id
     result["count"] = len(chats)

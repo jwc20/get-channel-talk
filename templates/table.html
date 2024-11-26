@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
 <style>
    body {
        max-width: 90%;
@@ -15,8 +15,8 @@
    }
    
    .message-cell {
-       padding-left: 20px;
-       border-left: 1px solid #ccc;
+       padding: 20px;
+       border-left: 1px dashed #ccc;
        position: relative; /* For the copy button */
    }
 
@@ -75,6 +75,19 @@
        <tr>
            <td>
             <ul class="info-list">
+                <li>
+                    <span class="label">participants</span>
+                    <span class="value">
+                        {% for participant in chat['participants'] %}
+                            {% if participant['type'] == 'manager' %}
+                                {{ participant['name'] }}
+                            {% else %}
+                                {{ participant['name'] }}
+                            {% endif %}
+                            {% if not loop.last %}<br/>{% endif %}
+                        {% endfor %}
+                    </span>
+                </li>
                 <li>
                     <span class="label">started_at</span>
                     <span class="value">{{ chat['created_at'].split()[1] }}</span>
