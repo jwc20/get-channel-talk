@@ -1,50 +1,105 @@
 <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
+   rel="stylesheet"
+   href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
 />
 <style>
-    body {
-        max-width: 90%;
-    }
+   body {
+       max-width: 90%;
+   }
 
-    table {
-        width: auto;
-        font-size: small;
-    }
+   table {
+       width: auto;
+       font-size: small;
+   }
+   
+   .info-table {
+       margin-bottom: 0;
+       outline: gray solid 1px;
+   }
+   
+   .message-cell {
+       padding-left: 20px;
+       border-left: 1px solid #ccc;
+       position: relative; /* For the copy button */
+   }
+
+   .copy-button {
+       position: absolute;
+       top: 5px;
+       right: 5px;
+       padding: 2px 8px;
+       font-size: 12px;
+       cursor: pointer;
+   }
 </style>
 
 <div>
-    <h3>{{ data['manager_id'] }}</h3>
-    <h3>date: {{ data['date'] }}</h3>
-    <h3>count: {{ data['count'] }}</h3>
+   <h3>{{ data['manager_id'] }}</h3>
+   <h3>date: {{ data['date'] }}</h3>
+   <h3>count: {{ data['count'] }}</h3>
 </div>
 
 <table>
-    <thead>
-        <tr>
-            <td>church</td>
-            <td>senior pastor</td>
-            <td style="width: 150px">time</td>
-            <td>last message at</td>
-            <td>tags</td>
-            <td>state</td>
-            {#
-            <td>messages</td>
-            #}
-            <td>texts</td>
-        </tr>
-    </thead>
-    <tbody class="chats">
-        {% for chat in data['chats'] %}
-        <tr>
-            {# <td>{{ data }}</td> #}
-            <td></td>
-            <td style="width: 100px">{{ chat['created_at'].split()[1] }}</td>
-            <td>{{ chat['last_message_date'] }}</td>
-            <td style="width: 200px">{% if chat['tags'] %}{% for tag in chat['tags'] %}{{ tag }}<br />{% if not loop.last %}{% endif %}{% endfor %}{% else %}None{% endif %}</td>
-            <td>{{ chat['state'] }}</td>
-            <td>{% for text in chat['texts'] %}{{ text }}<br />{% if not loop.last %}{% endif %}{% endfor %}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
+   <tbody class="chats">
+       {% for chat in data['chats'] %}
+       {% set start = chat['created_at'].split()[1].split(':') %}
+       {% set end = chat['last_message_date'].split()[1].split(':') %}
+       {% set duration_minutes = ((end[0]|int * 60 + end[1]|int) - (start[0]|int * 60 + start[1]|int)) %}
+       <tr>
+           <td>
+               <table class="info-table">
+                   <tr>
+                       <td style="width: 150px">started_at</td>
+                       <td>{{ chat['created_at'].split()[1] }}</td>
+                   </tr>
+                   <tr>
+                       <td>last_message_at</td>
+                       <td>{{ chat['last_message_date'] }}</td>
+                   </tr>
+                   <tr>
+                       <td>tags</td>
+                       <td>{% if chat['tags'] %}{% for tag in chat['tags'] %}{{ tag }}{% if not loop.last %}<br/>{% endif %}{% endfor %}{% else %}None{% endif %}</td>
+                   </tr>
+                   <tr>
+                       <td>state</td>
+                       <td>{{ chat['state'] }}</td>
+                   </tr>
+                   <tr>
+                       <td>st/end</td>
+                       <td>{{ chat['created_at'].split()[1].split(':')[0:2]|join('') }} / {{ chat['last_message_date'].split()[1].split(':')[0:2]|join('') }}</td>
+                   </tr>
+                   <tr>
+                       <td>duration</td>
+                       <td>{{ duration_minutes }} mins</td>
+                   </tr>
+               </table>
+           </td>
+           <td class="message-cell" id="message-{{ loop.index }}">
+               <button class="copy-button" onclick="copyContent('message-{{ loop.index }}')">Copy</button>
+               {% for text in chat['texts'] %}{{ text }}<br />{% if not loop.last %}{% endif %}{% endfor %}
+           </td>
+       </tr>
+       {% endfor %}
+   </tbody>
 </table>
+
+<script>
+function copyContent(elementId) {
+   const messageCell = document.getElementById(elementId);
+   const content = messageCell.innerText.replace('Copy', '').trim();
+   
+   navigator.clipboard.writeText(content)
+       .then(() => {
+           const button = messageCell.querySelector('.copy-button');
+           const originalText = button.textContent;
+           button.textContent = 'Copied!';
+           setTimeout(() => {
+               button.textContent = originalText;
+           }, 2000);
+       })
+       .catch(err => {
+           console.error('Failed to copy text: ', err);
+           alert('Failed to copy text');
+       });
+}
+</script>

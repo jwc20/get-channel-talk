@@ -6,6 +6,8 @@ from typing import DefaultDict, List, Dict
 from collections import defaultdict, namedtuple
 from datetime import datetime, timezone, timedelta
 import urllib.parse
+import emoji
+
 
 from pprintpp import pprint
 
@@ -33,12 +35,10 @@ def convert_timestamp_to_date_without_time(timestamp: int) -> str:
     """
     date_time = datetime.fromtimestamp(timestamp / 1000, timezone(timedelta(hours=9)))
     return date_time.strftime("%Y-%m-%d")
-
-
 # ------------------------------------------------------
+
+
 # ---Routes---------------------------------------------
-
-
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -154,16 +154,6 @@ def get_chats(
     return arr
 
 
-# @app.route("/api/managers/<manager_id>/chats", methods=["GET"])
-# @app.route("/api/managers/<manager_id>/chats/<state>", methods=["GET"])
-# @app.route("/api/managers/<manager_id>/chats/<state>/<limit>", methods=["GET"])
-# @app.route(
-#     "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"]
-# )
-# @app.route(
-#     "/api/managers/<manager_id>/chats/<state>/<limit>/<sort_order>/<date>",
-#     methods=["GET"],
-# )
 def get_chats_by_manager_id(
     manager_id: str,
     state: str = "all",
@@ -226,10 +216,6 @@ def get_chats_by_manager_id(
         chat_messages = []
         chat_texts = []
 
-        # if any(chat['chat_id'] == chat_id.id for chat in chats):
-        #     # check for duplicate chat_id
-        #     continue
-
         _messages = get_chat_messages(chat_id.id)["messages"]
 
         for message in _messages:
@@ -242,18 +228,80 @@ def get_chats_by_manager_id(
 
             if message["personType"] == "bot":
                 continue
+
+            remove_list = [
+                "사용문의",
+                "설치형 (CS 교적/재정,비품관리, 종교인회계)",
+                "웹 (NEW 워칭, V6, 가정교회 360, 온라인행정)",
+                "프로그램 or 홈페이지 구축 상담",
+                "사용문의 메뉴로 돌아가기",
+                "PC설치형 교적/재정 프로그램",
+                "재정 문의",
+                "앱 & 모바일 (스마트 성도 앱, 스마트요람)",
+                "🖥️ 사용문의",
+                "💻 설치형 (CS 교적/재정,비품관리, 종교인회계)",
+                "🌐 웹 (NEW 워칭, V6, 가정교회 360, 온라인행정)",
+                "✨ 프로그램 or 홈페이지 구축 상담",
+                "🔙사용문의 메뉴로 돌아가기",
+                "PC설치형 교적/재정 프로그램",
+                "재정 문의",
+                "📱 앱 & 모바일 (스마트 성도 앱, 스마트요람)",
+                "교적 문의",
+                "상담원 연결하기",
+            ]
+
             for participant in _userChats["participants"]:
                 if message["personId"] == participant["id"]:
                     if "plainText" in message:
-                        manager_arrow = (
-                            ">> " if participant["type"] == "manager" else ""
-                        )
-                        # chat_texts.append(
-                        #     f"{manager_arrow} {convert_timestamp_to_date(message['createdAt']).split()[1][0:5]} | {participant['name']}: {message['plainText']}"
-                        # )
-                        chat_texts.append(
-                            f"{manager_arrow}{participant['name']}: {message['plainText']}"
-                        )
+                        plaintext = message["plainText"]  # chat message
+
+                        cleaned_text = ""
+                        for char in plaintext:
+                            if not (
+                                0x1F300 <= ord(char) <= 0x1F9FF  # Emoticons
+                                or 0x2600 <= ord(char) <= 0x26FF  # Misc symbols
+                                or 0x2700 <= ord(char) <= 0x27BF  # Dingbats
+                                or 0xFE00 <= ord(char) <= 0xFE0F  # Variation selectors
+                                or 0x1F900
+                                <= ord(char)
+                                <= 0x1F9FF  # Supplemental symbols
+                                or 0x1F600 <= ord(char) <= 0x1F64F
+                            ):  # Emoticons
+                                cleaned_text += char
+
+                        cleaned_text = cleaned_text.strip()
+
+                        cleaned_text = cleaned_text.replace("  ", " ")
+                        if cleaned_text in remove_list:
+                            continue
+
+                        # Skip if message is empty after cleaning
+                        if not cleaned_text:
+                            continue
+
+                        # add arrow to indicate manager
+                        is_manager = participant["type"] == "manager"
+                        manager_arrow = ">> " if is_manager else ""
+
+                        # Check if previous message exists and was from a manager
+                        prev_was_manager = len(chat_texts) > 0 and chat_texts[
+                            -1
+                        ].startswith(">> ")
+
+                        # Add newlines based on message sender type
+                        if is_manager:
+                            if (
+                                not prev_was_manager
+                            ):  # If previous message was from user, add newline before
+                                chat_texts.append("")
+                            chat_texts.append(f"{manager_arrow}{cleaned_text}")
+                        else:  # User message
+                            if (
+                                prev_was_manager
+                            ):  # If previous message was from manager, add newline before
+                                chat_texts.append("")
+                            chat_texts.append(f"{manager_arrow}{cleaned_text}")
+
                         chat_messages.append(
                             {
                                 "created_at": convert_timestamp_to_date(
@@ -261,7 +309,7 @@ def get_chats_by_manager_id(
                                 ),
                                 "participant_name": participant["name"],
                                 "participant_id": participant["id"],
-                                "chat_message": message["plainText"],
+                                "chat_message": cleaned_text,
                             }
                         )
 
@@ -284,11 +332,6 @@ def get_chats_by_manager_id(
             }
         )
 
-    # TODO: do this on the client side
-    # manager_ids = [chat["manager_id"] for chat in chats]
-    # if manager_id not in manager_ids:
-    #     return {}
-
     result["manager_id"] = manager_id
     result["count"] = len(chats)
     result["date"] = date
@@ -297,7 +340,6 @@ def get_chats_by_manager_id(
     return result
 
 
-# @app.route("/test", methods=["GET"])
 @app.route("/managers/<manager_id>/chats", methods=["GET"])
 @app.route("/managers/<manager_id>/chats/<state>", methods=["GET"])
 @app.route("/managers/<manager_id>/chats/<state>/<limit>", methods=["GET"])
@@ -308,7 +350,7 @@ def get_chats_by_manager_id(
 def get_chats_by_manager_id_html(
     manager_id: str,
     state: str = "all",
-    limit: str = "50",
+    limit: str = "100",
     sort_order: str = "desc",
     date: str = None,
 ) -> dict:
