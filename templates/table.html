@@ -1,7 +1,4 @@
-<link
-   rel="stylesheet"
-   href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
-/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">
 <style>
    body {
        max-width: 90%;
@@ -31,13 +28,43 @@
        font-size: 12px;
        cursor: pointer;
    }
+   .info-list {
+       list-style: none;
+       padding: 10px;
+       margin: 10px;
+       outline: solid 1px gray;
+   }
+   
+   .info-list li {
+       display: flex;
+       margin-bottom: 5px;
+   }
+   
+   .info-list .label {
+       width: 150px;
+       font-weight: normal;
+   }
+   
+   .info-list .value {
+       flex: 1;
+   }
 </style>
 
-<div>
-   <h3>{{ data['manager_id'] }}</h3>
-   <h3>date: {{ data['date'] }}</h3>
-   <h3>count: {{ data['count'] }}</h3>
-</div>
+
+<table>
+    <tbody>
+        <tr style="outline: 1px solid #ccc;">
+            <td>{{ data['manager_id'] }}</td>
+        </tr>
+        <tr style="outline: 1px solid #ccc;">
+            <td>date: {{ data['date'] }}</td>
+        </tr>
+        <tr style="outline: 1px solid #ccc;">
+            <td>count: {{ data['count'] }}</td>
+        </tr>      
+    </tbody>
+</table>
+
 
 <table>
    <tbody class="chats">
@@ -47,32 +74,40 @@
        {% set duration_minutes = ((end[0]|int * 60 + end[1]|int) - (start[0]|int * 60 + start[1]|int)) %}
        <tr>
            <td>
-               <table class="info-table">
-                   <tr>
-                       <td style="width: 150px">started_at</td>
-                       <td>{{ chat['created_at'].split()[1] }}</td>
-                   </tr>
-                   <tr>
-                       <td>last_message_at</td>
-                       <td>{{ chat['last_message_date'] }}</td>
-                   </tr>
-                   <tr>
-                       <td>tags</td>
-                       <td>{% if chat['tags'] %}{% for tag in chat['tags'] %}{{ tag }}{% if not loop.last %}<br/>{% endif %}{% endfor %}{% else %}None{% endif %}</td>
-                   </tr>
-                   <tr>
-                       <td>state</td>
-                       <td>{{ chat['state'] }}</td>
-                   </tr>
-                   <tr>
-                       <td>st/end</td>
-                       <td>{{ chat['created_at'].split()[1].split(':')[0:2]|join('') }} / {{ chat['last_message_date'].split()[1].split(':')[0:2]|join('') }}</td>
-                   </tr>
-                   <tr>
-                       <td>duration</td>
-                       <td>{{ duration_minutes }} mins</td>
-                   </tr>
-               </table>
+            <ul class="info-list">
+                <li>
+                    <span class="label">started_at</span>
+                    <span class="value">{{ chat['created_at'].split()[1] }}</span>
+                </li>
+                <li>
+                    <span class="label">last_message_at</span>
+                    <span class="value">{{ chat['last_message_date'] }}</span>
+                </li>
+                <li>
+                    <span class="label">tags</span>
+                    <span class="value">
+                        {% if chat['tags'] %}
+                            {% for tag in chat['tags'] %}
+                                {{ tag }}{% if not loop.last %}<br/>{% endif %}
+                            {% endfor %}
+                        {% else %}
+                            None
+                        {% endif %}
+                    </span>
+                </li>
+                <li>
+                    <span class="label">state</span>
+                    <span class="value">{{ chat['state'] }}</span>
+                </li>
+                <li>
+                    <span class="label">st/end</span>
+                    <span class="value">{{ chat['created_at'].split()[1].split(':')[0:2]|join('') }} / {{ chat['last_message_date'].split()[1].split(':')[0:2]|join('') }}</span>
+                </li>
+                <li>
+                    <span class="label">duration</span>
+                    <span class="value">{{ duration_minutes }} mins</span>
+                </li>
+             </ul>
            </td>
            <td class="message-cell" id="message-{{ loop.index }}">
                <button class="copy-button" onclick="copyContent('message-{{ loop.index }}')">Copy</button>
