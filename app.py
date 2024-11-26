@@ -72,17 +72,16 @@ def get_chat_messages(chatId: str) -> dict:
         "X-Access-Secret": ACCESS_SECRET,
     }
 
-    # TODO: Add pagination (?)
+    # TODO: Add pagination
 
     response = requests.get(
         "http://api.channel.io/open/v5/user-chats/"
         + chatId
-        + "/messages?sortOrder=asc&limit=100",
+        + "/messages?sortOrder=asc&limit=50",
         headers=headers,
         json=True,
     )
     response.encoding = "utf-8"
-    # pprint(response.json())
     return response.json()
 
 
@@ -111,9 +110,7 @@ def get_chats(
     while _limit > 0:
         response = requests.get(url, headers=headers, json=True)
         participants = []
-        church_infos = []
         userChats = response.json()["userChats"]
-
 
         if "managers" in response.json():
             managers = response.json()["managers"]
@@ -154,23 +151,6 @@ def get_chats(
     # {k: [*map(pprint, v[:3])] for k, v in arr.items()}
     # pprint(arr)
 
-    # loop over participants that are type user
-
-    chat_users = [d for d in arr['participants'] if d['type'] == 'user']
-
-    if 'users' in response.json():
-        users = response.json()["users"]
-
-        for u in chat_users:
-            for user in users:
-                church_info = {}
-                if u['id'] == user['id']:
-                    church_info = user['profile']
-                    church_info['user_id'] = user['id'] # use this to check later
-                    church_infos.append(church_info)
-
-    arr['church_infos'] = church_infos
-    # pprint(arr)
     return arr
 
 
@@ -194,7 +174,7 @@ def get_chats_by_manager_id(
     result = {}
     chats = []
     chat_ids = []
-    ChatID = namedtuple("ChatID", ["id", "tags", "state", "created_at", "manager_id", "user_id"])
+    ChatID = namedtuple("ChatID", ["id", "tags", "state", "created_at", "manager_id"])
     _arr = defaultdict(list)
     states = "all opened closed snoozed".split()
     sorts = "asc desc".split()
@@ -211,21 +191,10 @@ def get_chats_by_manager_id(
                 if "managerIds" not in userChat:
                     continue
 
-                # pprint(userChat['userId'])
-
-
-
-                # TODO: get user, use the id
-
                 if manager_id in userChat["managerIds"]:
                     # _ids.append(userChat["id"])
                     if not any(chat_id.id == userChat["id"] for chat_id in chat_ids):
                         tags = userChat.get("tags")
-                        user_id = userChat['userId']
-
-                        user_profile = next((p for p in _userChats['profile'] if p['user_id'] == user_id), None)
-                        chat_user = user_profile
-
                         chat_ids.append(
                             ChatID(
                                 userChat["id"],
@@ -233,7 +202,6 @@ def get_chats_by_manager_id(
                                 s,
                                 userChat["createdAt"],
                                 manager_id,
-                                chat_user
                             )
                         )
 
@@ -249,9 +217,9 @@ def get_chats_by_manager_id(
             if manager_id in userChat["managerIds"]:
                 if "tags" not in userChat:
                     continue
-                tags = userChat.get("tags")
+                tags = userChat[tags]
                 chat_ids.append(
-                    ChatID(userChat["id"], tags, state, userChat["createdAt"], manager_id)
+                    ChatID(userChat["id"], tags, s, userChat["createdAt"], manager_id)
                 )
 
     for chat_id in chat_ids:
@@ -277,7 +245,9 @@ def get_chats_by_manager_id(
             for participant in _userChats["participants"]:
                 if message["personId"] == participant["id"]:
                     if "plainText" in message:
-                        manager_arrow = ">> " if participant["type"] == "manager" else ""
+                        manager_arrow = (
+                            ">> " if participant["type"] == "manager" else ""
+                        )
                         # chat_texts.append(
                         #     f"{manager_arrow} {convert_timestamp_to_date(message['createdAt']).split()[1][0:5]} | {participant['name']}: {message['plainText']}"
                         # )
@@ -319,9 +289,6 @@ def get_chats_by_manager_id(
     # if manager_id not in manager_ids:
     #     return {}
 
-
-
-    # result["church"] = church_name
     result["manager_id"] = manager_id
     result["count"] = len(chats)
     result["date"] = date
@@ -335,8 +302,16 @@ def get_chats_by_manager_id(
 @app.route("/managers/<manager_id>/chats/<state>", methods=["GET"])
 @app.route("/managers/<manager_id>/chats/<state>/<limit>", methods=["GET"])
 @app.route("/managers/<manager_id>/chats/<state>/<limit>/<sort_order>", methods=["GET"])
-@app.route("/managers/<manager_id>/chats/<state>/<limit>/<sort_order>/<date>",methods=["GET"])
-def get_chats_by_manager_id_html(manager_id: str, state: str = "all", limit: str = "50", sort_order: str = "desc", date: str = None) -> dict:
+@app.route(
+    "/managers/<manager_id>/chats/<state>/<limit>/<sort_order>/<date>", methods=["GET"]
+)
+def get_chats_by_manager_id_html(
+    manager_id: str,
+    state: str = "all",
+    limit: str = "50",
+    sort_order: str = "desc",
+    date: str = None,
+) -> dict:
     data = get_chats_by_manager_id(manager_id, state, limit, sort_order, date)
     return render_template("table.html", data=data)
 
@@ -346,4 +321,4 @@ def get_chats_by_manager_id_html(manager_id: str, state: str = "all", limit: str
 
 if __name__ == "__main__":
     app.debug = True
-    app.run(host="localhost", port=5010)
+    app.run(host="localhost", port=50010)
