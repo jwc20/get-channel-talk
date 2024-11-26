@@ -1,4 +1,4 @@
-# hyper-channel 🚀
+# get channel talk 🚀
 
 A simple application to view chat messages between managers and participants using the [channel.io open API](https://api-doc.channel.io/).
 
